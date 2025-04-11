@@ -1,0 +1,251 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>AI Chatbot</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      margin: 0;
+      padding: 0;
+      min-height: 100vh;
+      background: 
+        url('https://i.imgflip.com/345v97.jpg') no-repeat center center fixed,
+        linear-gradient(to bottom right, #4facfe, #00f2c3);
+      background-size: cover;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    h2 {
+      margin-top: 40px;
+      color: #fff;
+      text-shadow: 1px 1px 3px rgba(0,0,0,0.3);
+    }
+
+    #chatbox {
+      width: 90%;
+      max-width: 600px;
+      height: 400px;
+      background: #008080;
+      color: white;
+      border-radius: 10px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+      overflow-y: auto;
+      padding: 20px;
+      margin-top: 20px;
+      margin-bottom: 10px;
+    }
+
+    .message {
+      margin-bottom: 15px;
+      line-height: 1.5;
+    }
+
+    .user {
+      text-align: right;
+    }
+
+    .user .bubble {
+      display: inline-block;
+      background: #006dff;
+      color: white;
+      padding: 10px 15px;
+      border-radius: 20px 20px 0 20px;
+      max-width: 70%;
+    }
+
+    .bot {
+      text-align: left;
+    }
+
+    .bot .bubble {
+      display: inline-block;
+      background: #20dfc3;
+      color: black;
+      padding: 10px 15px;
+      border-radius: 20px 20px 20px 0;
+      max-width: 70%;
+    }
+
+    .bubble {
+      animation: fadeInUp 0.3s ease-out;
+    }
+
+    @keyframes fadeInUp {
+      from {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .message .bubble:hover {
+      transform: scale(1.02);
+      transition: transform 0.2s;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+    }
+
+    .dots::after {
+      content: '';
+      display: inline-block;
+      width: 1em;
+      text-align: left;
+      animation: dots 1.5s steps(3, end) infinite;
+    }
+
+    @keyframes dots {
+      0% { content: ''; }
+      33% { content: '.'; }
+      66% { content: '..'; }
+      100% { content: '...'; }
+    }
+
+    #input-area {
+      width: 90%;
+      max-width: 600px;
+      display: flex;
+      gap: 10px;
+      margin-bottom: 40px;
+    }
+
+    input[type="text"] {
+      flex: 1;
+      padding: 12px 15px;
+      border: 1px solid #ccc;
+      border-radius: 25px;
+      font-size: 16px;
+      outline: none;
+    }
+
+    button {
+      background: #006dff;
+      color: white;
+      border: none;
+      padding: 12px 20px;
+      border-radius: 25px;
+      font-size: 16px;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+
+    button:hover {
+      background: #0051c7;
+    }
+
+    img {
+      max-width: 100%;
+      border-radius: 10px;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+  <h2>💬 AI Chatbot</h2>
+  <div id="chatbox">
+    <div class="message bot">
+      <div class="bubble">
+        <img src="https://i.imgflip.com/345v97.jpg" alt="Meme" />
+      </div>
+    </div>
+  </div>
+
+  <div id="input-area">
+    <input type="text" id="input" placeholder="Type a message..." />
+    <button onclick="sendMessage()">Send</button>
+  </div>
+
+  <script>
+    window.onload = () => {
+      document.getElementById("input").focus();
+    };
+
+    const pop = new Audio('https://www.soundjay.com/button/sounds/button-29.mp3');
+
+    async function sendMessage() {
+      const input = document.getElementById("input");
+      const chatbox = document.getElementById("chatbox");
+      const message = input.value.trim();
+
+      if (!message) return;
+
+      pop.play();
+
+      chatbox.innerHTML += `
+        <div class="message user">
+          <div class="bubble">${message}</div>
+        </div>
+      `;
+      input.value = "";
+      chatbox.scrollTop = chatbox.scrollHeight;
+
+      const typingId = `typing-${Date.now()}`;
+      chatbox.innerHTML += `
+        <div class="message bot" id="${typingId}">
+          <div class="bubble"><em>Bot is typing<span class="dots"></span></em></div>
+        </div>
+      `;
+      chatbox.scrollTop = chatbox.scrollHeight;
+
+      try {
+        const res = await fetch("/chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ message })
+        });
+        const data = await res.json();
+
+        const reply = data.reply || "No response";
+        const bubble = document.createElement("div");
+        bubble.className = "bubble";
+        bubble.innerHTML = reply;
+
+        const imgs = bubble.querySelectorAll("img");
+        if (imgs.length > 0) {
+          imgs[0].onload = () => {
+            chatbox.scrollTop = chatbox.scrollHeight;
+          };
+        } else {
+          chatbox.scrollTop = chatbox.scrollHeight;
+        }
+
+        const typingEl = document.getElementById(typingId);
+        typingEl.innerHTML = "";
+        typingEl.appendChild(bubble);
+        chatbox.scrollTop = chatbox.scrollHeight;
+
+      } catch (err) {
+        console.error("Error:", err);
+        document.getElementById(typingId).innerHTML = `
+          <div class="bubble">⚠️ Something went wrong.</div>
+        `;
+      }
+    }
+
+    document.getElementById("input").addEventListener("keypress", function (e) {
+      if (e.key === "Enter") {
+        sendMessage();
+      }
+    });
+  </script>
+
+  <footer style="margin-bottom: 20px; color: #fff; text-shadow: 1px 1px 3px rgba(0,0,0,0.3);">
+    Name: Aryan Sinha &nbsp;|&nbsp; Roll No.: 50 &nbsp;|&nbsp; Reg No.: 12308379
+  
+    <div style="margin-top: 5px;">
+      Name: Aryan Parihar &nbsp;|&nbsp; Roll No: 05 &nbsp;|&nbsp; Reg No.: 12323084
+    </div>
+  
+    <div style="margin-top: 5px;">
+      Name: Rohit Patnaik &nbsp;|&nbsp; Roll No.: 58 &nbsp;|&nbsp; Reg No.: 12314332
+    </div>
+  </footer>
+</body>
+</html>
+
+
